@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Lit3 — Buy eBooks for 0.25 USDC</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;padding:24px;background:#f8fafc;color:#0f172a}
+    .card{background:white;border-radius:12px;padding:20px;box-shadow:0 6px 18px rgba(2,6,23,0.08);max-width:800px;margin:18px auto}
+    header{display:flex;align-items:center;justify-content:space-between}
+    h1{margin:0;font-size:24px;font-weight:700;color:#0f172a}
+    button{background:#0ea5a4;border:none;padding:10px 16px;border-radius:8px;color:white;font-weight:600;cursor:pointer;transition:background .2s}
+    button:hover{background:#0c9695}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .book{display:grid;grid-template-columns:84px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #eef2f7}
+    .cover{width:84px;height:120px;background:#e2e8f0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#475569}
+    .small{font-size:13px;color:#475569}
+    .notice{background:#fff7ed;border-left:4px solid #f59e0b;padding:12px;margin-top:14px;border-radius:8px}
+    .success{background:#ecfdf5;border-left:4px solid #10b981;padding:12px;margin-top:14px;border-radius:8px}
+    a.link{color:#0369a1;text-decoration:underline}
+    footer{font-size:13px;color:#64748b;margin-top:18px;text-align:center}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <header>
+      <h1>Lit3</h1>
+      <div id="walletArea"><button id="connectBtn">Connect wallet</button></div>
+    </header>
+
+    <p class="small">Pay <strong>0.25 USDC on Polygon</strong> to instantly unlock your eBook as a downloadable PDF.</p>
+
+    <div id="booksList">
+      <div class="book">
+        <div class="cover">G</div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700">The Great Gatsby</div>
+              <div class="small">by F. Scott Fitzgerald</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700">0.25 USDC</div>
+              <div class="small">Polygon</div>
+            </div>
+          </div>
+        </div>
+        <div><button class="buyBtn" data-bookid="gatsby">Buy</button></div>
+      </div>
+
+      <div class="book">
+        <div class="cover">P</div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700">Pride and Prejudice</div>
+              <div class="small">by Jane Austen</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700">0.25 USDC</div>
+              <div class="small">Polygon</div>
+            </div>
+          </div>
+        </div>
+        <div><button class="buyBtn" data-bookid="pride">Buy</button></div>
+      </div>
+
+      <div class="book">
+        <div class="cover">F</div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700">Frankenstein</div>
+              <div class="small">by Mary Shelley</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700">0.25 USDC</div>
+              <div class="small">Polygon</div>
+            </div>
+          </div>
+        </div>
+        <div><button class="buyBtn" data-bookid="frankenstein">Buy</button></div>
+      </div>
+
+      <div class="book">
+        <div class="cover">M</div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700">Moby-Dick</div>
+              <div class="small">by Herman Melville</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700">0.25 USDC</div>
+              <div class="small">Polygon</div>
+            </div>
+          </div>
+        </div>
+        <div><button class="buyBtn" data-bookid="mobydick">Buy</button></div>
+      </div>
+
+      <div class="book">
+        <div class="cover">L</div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:700">Sample Classic (Test PDF)</div>
+              <div class="small">PDF format only</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700">0.25 USDC</div>
+              <div class="small">Polygon</div>
+            </div>
+          </div>
+        </div>
+        <div><button class="buyBtn" data-bookid="book1">Buy</button></div>
+      </div>
+    </div>
+
+    <div id="status" class="notice" style="display:none"></div>
+    <div id="download" style="display:none" class="success"></div>
+
+    <footer>Powered by Lit3 • Payments go directly to 0x747110685DdEBc2452a5113323bF6a5d76f03c07</footer>
+  </div>
+
+<script>
+(async function () {
+  const YOUR_WALLET_ADDRESS = "0x747110685DdEBc2452a5113323bF6a5d76f03c07".toLowerCase();
+  const USDC_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"; // Polygon USDC
+  const BOOKS = {
+    gatsby: {
+      title: "The Great Gatsby",
+      link: "https://ia801403.us.archive.org/27/items/greatgatsby00fitz/greatgatsby00fitz.pdf"
+    },
+    pride: {
+      title: "Pride and Prejudice",
+      link: "https://ia802709.us.archive.org/19/items/prideprejudice00aust/prideprejudice00aust.pdf"
+    },
+    frankenstein: {
+      title: "Frankenstein",
+      link: "https://ia600209.us.archive.org/22/items/frankensteinor00shelrich/frankensteinor00shelrich.pdf"
+    },
+    mobydick: {
+      title: "Moby-Dick",
+      link: "https://ia800302.us.archive.org/5/items/mobydickorwhale00melv_1/mobydickorwhale00melv_1.pdf"
+    },
+    book1: {
+      title: "Sample Classic (Test PDF)",
+      link: "https://ipfs.io/ipfs/QmV5mYjZRUvUcmN2nNMFjJmDoqgKXutgJmR45yQ9xhfFsu?filename=sample.pdf"
+    }
+  };
+  const PRICE_USDC = "0.25";
+  const USDC_DECIMALS = 6;
+
+  const connectBtn = document.getElementById("connectBtn");
+  const status = document.getElementById("status");
+  const download = document.getElementById("download");
+  let provider, signer, userAddress;
+
+  function showStatus(msg){status.style.display="block";status.innerText=msg;}
+  function showDownload(book){
+    download.style.display="block";
+    download.innerHTML=`<strong>Payment verified.</strong><br>
+      <a class="link" href="${book.link}" target="_blank">Download ${book.title}</a>`;
+  }
+
+  async function connectWallet(){
+    if(!window.ethereum){alert("Please install MetaMask.");return;}
+    provider=new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts",[]);
+    signer=provider.getSigner();
+    userAddress=(await signer.getAddress()).toLowerCase();
+    connectBtn.innerText=userAddress.slice(0,6)+"…"+userAddress.slice(-4);
+    connectBtn.disabled=true;
+    showStatus("Wallet connected: "+userAddress);
+  }
+  connectBtn.onclick=connectWallet;
+
+  document.querySelectorAll(".buyBtn").forEach(btn=>{
+    btn.addEventListener("click",async e=>{
+      const id=e.currentTarget.dataset.bookid,book=BOOKS[id];
+      if(!book)return;
+      if(!signer)await connectWallet();
+      try{
+        showStatus("Sending 0.25 USDC transaction…");
+        const iface=new ethers.utils.Interface([
+          "function transfer(address to,uint256 amount) returns(bool)",
+          "event Transfer(address indexed from,address indexed to,uint256 value)"
+        ]);
+        const usdc=new ethers.Contract(USDC_ADDRESS,iface,signer);
+        const amt=ethers.utils.parseUnits(PRICE_USDC,USDC_DECIMALS);
+        const tx=await usdc.transfer(YOUR_WALLET_ADDRESS,amt);
+        showStatus("Transaction submitted… waiting for confirmation");
+        const rcpt=await tx.wait(1);
+        let paid=false;
+        for(const log of rcpt.logs){
+          try{
+            const parsed=iface.parseLog(log);
+            if(parsed.name==="Transfer"&&
+               parsed.args.from.toLowerCase()===userAddress&&
+               parsed.args.to.toLowerCase()===YOUR_WALLET_ADDRESS&&
+               parsed.args.value.eq(amt))paid=true;
+          }catch{}
+        }
+        paid?showDownload(book):showStatus("Transfer not detected in logs. Try again?");
+      }catch(err){showStatus("Error: "+err.message);}
+    });
+  });
+})();
+</script>
+</body>
+</html>

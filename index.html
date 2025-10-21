@@ -29,7 +29,7 @@
       <div id="walletArea"><button id="connectBtn">Connect wallet</button></div>
     </header>
 
-    <p class="small">Pay <strong>0.25 USDC on Polygon</strong> to instantly unlock your eBook as a downloadable PDF.</p>
+    <p class="small">Pay <strong>0.25 USDC on Polygon</strong> to unlock your eBook.</p>
 
     <div id="booksList">
       <div class="book">
@@ -46,7 +46,7 @@
             </div>
           </div>
         </div>
-        <div><button class="buyBtn" data-bookid="gatsby">Buy</button></div>
+        <div><button class="buyBtn" data-bookid="gatsby" data-link="https://sandstonemedia.github.io/gatsby">Buy</button></div>
       </div>
 
       <div class="book">
@@ -63,7 +63,7 @@
             </div>
           </div>
         </div>
-        <div><button class="buyBtn" data-bookid="pride">Buy</button></div>
+        <div><button class="buyBtn" data-bookid="pride" data-link="https://sandstonemedia.github.io/pride">Buy</button></div>
       </div>
 
       <div class="book">
@@ -80,93 +80,70 @@
             </div>
           </div>
         </div>
-        <div><button class="buyBtn" data-bookid="frankenstein">Buy</button></div>
+        <div><button class="buyBtn" data-bookid="frankenstein" data-link="https://sandstonemedia.github.io/frankenstein">Buy</button></div>
       </div>
 
+      <!-- Free book -->
       <div class="book">
-        <div class="cover">M</div>
+        <div class="cover">T</div>
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div>
-              <div style="font-weight:700">Moby-Dick</div>
-              <div class="small">by Herman Melville</div>
+              <div style="font-weight:700">Test Novel</div>
+              <div class="small">by John Doe</div>
             </div>
             <div style="text-align:right">
-              <div style="font-weight:700">0.25 USDC</div>
-              <div class="small">Polygon</div>
+              <div style="font-weight:700">Free</div>
             </div>
           </div>
         </div>
-        <div><button class="buyBtn" data-bookid="mobydick">Buy</button></div>
+        <div><button class="buyBtn" data-bookid="testnovel" data-link="https://sandstonemedia.github.io/testnovel">View</button></div>
       </div>
 
-      <div class="book">
-        <div class="cover">L</div>
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="font-weight:700">Sample Classic (Test PDF)</div>
-              <div class="small">PDF format only</div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-weight:700">0.25 USDC</div>
-              <div class="small">Polygon</div>
-            </div>
-          </div>
-        </div>
-        <div><button class="buyBtn" data-bookid="book1">Buy</button></div>
-      </div>
     </div>
 
     <div id="status" class="notice" style="display:none"></div>
-    <div id="download" style="display:none" class="success"></div>
 
     <footer>Powered by Lit3 • Payments go directly to 0x747110685DdEBc2452a5113323bF6a5d76f03c07</footer>
   </div>
 
 <script>
-(async function () {
+(async function(){
   const YOUR_WALLET_ADDRESS = "0x747110685DdEBc2452a5113323bF6a5d76f03c07".toLowerCase();
   const USDC_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"; // Polygon USDC
-  const BOOKS = {
-    gatsby: {
-      title: "The Great Gatsby",
-      link: "https://ia801403.us.archive.org/27/items/greatgatsby00fitz/greatgatsby00fitz.pdf"
-    },
-    pride: {
-      title: "Pride and Prejudice",
-      link: "https://ia802709.us.archive.org/19/items/prideprejudice00aust/prideprejudice00aust.pdf"
-    },
-    frankenstein: {
-      title: "Frankenstein",
-      link: "https://ia600209.us.archive.org/22/items/frankensteinor00shelrich/frankensteinor00shelrich.pdf"
-    },
-    mobydick: {
-      title: "Moby-Dick",
-      link: "https://ia800302.us.archive.org/5/items/mobydickorwhale00melv_1/mobydickorwhale00melv_1.pdf"
-    },
-    book1: {
-      title: "Sample Classic (Test PDF)",
-      link: "https://ipfs.io/ipfs/QmV5mYjZRUvUcmN2nNMFjJmDoqgKXutgJmR45yQ9xhfFsu?filename=sample.pdf"
-    }
-  };
   const PRICE_USDC = "0.25";
   const USDC_DECIMALS = 6;
 
-  const connectBtn = document.getElementById("connectBtn");
-  const status = document.getElementById("status");
-  const download = document.getElementById("download");
+  const connectBtn=document.getElementById("connectBtn");
+  const status=document.getElementById("status");
   let provider, signer, userAddress;
 
   function showStatus(msg){status.style.display="block";status.innerText=msg;}
-  function showDownload(book){
-    download.style.display="block";
-    download.innerHTML=`<strong>Payment verified.</strong><br>
-      <a class="link" href="${book.link}" target="_blank">Download ${book.title}</a>`;
+
+  // Cookie helpers
+  function setCookie(name,value,days){
+    const expires=new Date(Date.now()+days*24*60*60*1000).toUTCString();
+    document.cookie=name+"="+value+"; expires="+expires+"; path=/";
+  }
+  function getCookie(name){
+    const match=document.cookie.match(new RegExp('(^| )'+name+'=([^;]+)'));
+    return match?match[2]:null;
   }
 
+  function ownsBook(id){
+    return getCookie("lit3_"+id) === "owned";
+  }
+
+  function markOwned(id){
+    setCookie("lit3_"+id,"owned",365);
+    updateButtons();
+  }
+
+  // Automatically mark free book as owned
+  if (!getCookie("lit3_testnovel")) setCookie("lit3_testnovel","owned",365);
+
   async function connectWallet(){
-    if(!window.ethereum){alert("Please install MetaMask.");return;}
+    if(!window.ethereum){alert("Please install MetaMask."); return;}
     provider=new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts",[]);
     signer=provider.getSigner();
@@ -174,39 +151,52 @@
     connectBtn.innerText=userAddress.slice(0,6)+"…"+userAddress.slice(-4);
     connectBtn.disabled=true;
     showStatus("Wallet connected: "+userAddress);
+    updateButtons();
   }
   connectBtn.onclick=connectWallet;
 
-  document.querySelectorAll(".buyBtn").forEach(btn=>{
-    btn.addEventListener("click",async e=>{
-      const id=e.currentTarget.dataset.bookid,book=BOOKS[id];
-      if(!book)return;
-      if(!signer)await connectWallet();
-      try{
-        showStatus("Sending 0.25 USDC transaction…");
-        const iface=new ethers.utils.Interface([
-          "function transfer(address to,uint256 amount) returns(bool)",
-          "event Transfer(address indexed from,address indexed to,uint256 value)"
-        ]);
-        const usdc=new ethers.Contract(USDC_ADDRESS,iface,signer);
-        const amt=ethers.utils.parseUnits(PRICE_USDC,USDC_DECIMALS);
-        const tx=await usdc.transfer(YOUR_WALLET_ADDRESS,amt);
-        showStatus("Transaction submitted… waiting for confirmation");
-        const rcpt=await tx.wait(1);
-        let paid=false;
-        for(const log of rcpt.logs){
-          try{
-            const parsed=iface.parseLog(log);
-            if(parsed.name==="Transfer"&&
-               parsed.args.from.toLowerCase()===userAddress&&
-               parsed.args.to.toLowerCase()===YOUR_WALLET_ADDRESS&&
-               parsed.args.value.eq(amt))paid=true;
-          }catch{}
-        }
-        paid?showDownload(book):showStatus("Transfer not detected in logs. Try again?");
-      }catch(err){showStatus("Error: "+err.message);}
+  async function buyBook(btn){
+    const id=btn.dataset.bookid;
+    const link=btn.dataset.link;
+    if(!signer) await connectWallet();
+    try{
+      showStatus("Sending 0.25 USDC transaction…");
+      const iface=new ethers.utils.Interface(["function transfer(address to,uint256 amount) returns(bool)","event Transfer(address indexed from,address indexed to,uint256 value)"]);
+      const usdc=new ethers.Contract(USDC_ADDRESS,iface,signer);
+      const amt=ethers.utils.parseUnits(PRICE_USDC,USDC_DECIMALS);
+      const tx=await usdc.transfer(YOUR_WALLET_ADDRESS,amt);
+      showStatus("Transaction submitted… waiting for confirmation");
+      const rcpt=await tx.wait(1);
+      let paid=false;
+      for(const log of rcpt.logs){
+        try{
+          const parsed=iface.parseLog(log);
+          if(parsed.name==="Transfer"&&parsed.args.from.toLowerCase()===userAddress&&parsed.args.to.toLowerCase()===YOUR_WALLET_ADDRESS&&parsed.args.value.eq(amt))
+            paid=true;
+        }catch{}
+      }
+      if(paid){
+        markOwned(id);
+        showStatus(`Payment confirmed. You now own "${btn.previousElementSibling.querySelector("div[style]").innerText}"`);
+      }else showStatus("Transfer not detected. Try again?");
+    }catch(err){showStatus("Error: "+err.message);}
+  }
+
+  function updateButtons(){
+    document.querySelectorAll(".buyBtn").forEach(btn=>{
+      const id=btn.dataset.bookid;
+      const link=btn.dataset.link;
+      if(ownsBook(id)){
+        btn.innerText="View";
+        btn.onclick=()=>window.open(link,"_blank");
+      } else {
+        btn.innerText="Buy";
+        btn.onclick=()=>buyBook(btn);
+      }
     });
-  });
+  }
+
+  updateButtons();
 })();
 </script>
 </body>
